@@ -5,8 +5,8 @@
       "device": "begonia",
       "defconfig": "begonia_user_defconfig",
       "name": "Test-Non-Patches",
-      "repo": "https://github.com/xiaomi-mt6785-dev/android_kernel_xiaomi_mt6785",
-      "branch": "lineage-21"
+      "repo": "https://github.com/xiaomi-begonia-dev/android_kernel_xiaomi_mt6785",
+      "branch": "fifteen"
     },
     "withRoot": "none",
     "withSUSFS": false,
@@ -53,8 +53,8 @@
       "device": "begonia",
       "defconfig": "begonia_user_defconfig",
       "name": "Test-KSU-Next-SUSFS",
-      "repo": "https://github.com/xiaomi-mt6785-dev/android_kernel_xiaomi_mt6785",
-      "branch": "lineage-21"
+      "repo": "https://github.com/xiaomi-begonia-dev/android_kernel_xiaomi_mt6785",
+      "branch": "fifteen"
     },
     "withRoot": "ksun",
     "withSUSFS": true,
