@@ -1,4 +1,4 @@
-gh repo clone Hinekiri/Kernelname: "Build kernels for release"
+"Build kernels for release"
 
 env:
   OUT_DIR: "${{ github.workspace }}/out"
