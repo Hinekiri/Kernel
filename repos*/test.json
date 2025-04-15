@@ -12,7 +12,7 @@
     "withSUSFS": false,
     "toolchains": [
       {
-        "repo": "https://gitlab.com/PixelOS-Devices/playgroundtc",
+        "repo": "https://gitlab.com/Hinekiri/playgroundtc",
         "branch": "17",
         "name": "clang-playground",
         "binPath": ["./bin"]
@@ -60,7 +60,7 @@
     "withSUSFS": true,
     "toolchains": [
       {
-        "repo": "https://gitlab.com/PixelOS-Devices/playgroundtc",
+        "repo": "https://gitlab.com/Hinekiri/playgroundtc",
         "branch": "17",
         "name": "clang-playground",
         "binPath": ["./bin"]
