@@ -1,4 +1,4 @@
-name: "Build kernels for release"
+gh repo clone Hinekiri/Kernelname: "Build kernels for release"
 
 env:
   OUT_DIR: "${{ github.workspace }}/out"
@@ -253,16 +253,16 @@ jobs:
           echo -e "SUSFS_BRANCH=$SUSFS_BRANCH" >> $GITHUB_OUTPUT
 
           if [[ "$withRoot" == "ksu" ]]; then
-            if [[ "$KNAME" == "power" ]]; then
-              patch -p1 < SUSFS/kernel_patches/kernels/power/0001-fs-implement-KSU.patch
+            if [[ "$KNAME" == "test" ]]; then
+              patch -p1 < SUSFS/kernel_patches/kernels/test/0001-fs-implement-KSU.patch
             elif [[ "$KNAME" == "nova" ]]; then
               patch -p1 < SUSFS/kernel_patches/kernels/nova/0001-fs-implement-KSU.patch
             else
               patch -p1 < SUSFS/kernel_patches/0001-fs-implement-KSU.patch
             fi
           else
-            if [[ "$KNAME" == "power" ]]; then
-              patch -p1 < SUSFS/kernel_patches/kernels/power/0001-fs-implement-KSUN.patch
+            if [[ "$KNAME" == "test" ]]; then
+              patch -p1 < SUSFS/kernel_patches/kernels/test/0001-fs-implement-KSUN.patch
             elif [[ "$KNAME" == "nova" ]]; then
               patch -p1 < SUSFS/kernel_patches/kernels/nova/0001-fs-implement-KSUN.patch
             else
@@ -300,8 +300,8 @@ jobs:
             git clone --recursive -j $(nproc) --branch susfs-v1.5.5 https://github.com/rsuntk/KernelSU KernelSU
           fi
 
-          if [[ "$KNAME" == "power" ]]; then
-            patch -p1 < SUSFS/kernel_patches/kernels/power/50_add_susfs_in_kernel-4.14.patch
+          if [[ "$KNAME" == "test" ]]; then
+            patch -p1 < SUSFS/kernel_patches/kernels/test/50_add_susfs_in_kernel-4.14.patch
           elif [[ "$KNAME" == "nova" ]]; then
             patch -p1 < SUSFS/kernel_patches/kernels/nova/50_add_susfs_in_kernel-4.14.patch
           else
@@ -391,7 +391,7 @@ jobs:
           prerelease: false
           draft: false
           generate_release_notes: false
-          body: "Astera Kernel by [MrErenK](https://ithub.com/MrErenK), Nova Kernel by [Nova-Kernels](https://github.com/Nova-Kernels), Power kernel By [Saikrishna1504](https://github.com/Saikrishna1504) and Build with Github by [cvnertnc](https://github.com/cvnertnc)\nAll Linux kernel patched with [KernelSU](https://github.com/rsuntk/KernelSU) and [KernelSU-Next](https://github.com/KernelSU-Next/KernelSU-Next) + [SUSFS patches](https://gitlab.com/simonpunk/susfs4ksu) for Xiaomi Redmi Note 8 Pro (begonia).\n\n**Installation:**\n1. Flash the kernel from this release.\n2. Download and install the Manager\n\nKernelSU:\n> [Stable Version](https://github.com/rsuntk/KernelSU/releases/latest) || [Nightly Version](https://nightly.link/rsuntk/KernelSU/workflows/build-manager/main)\n\nKernelSU Next:\n> [Stable Version](https://github.com/KernelSU-Next/KernelSU-Next/releases/latest) || [Nightly Version](https://nightly.link/KernelSU-Next/KernelSU-Next/workflows/build-manager/next/manager)\n\n3. Download and install the SUSFS Module from here: https://github.com/sidex15/susfs4ksu-module/releases/latest\n4. Download and install the Mountify Module from here: https://github.com/backslashxx/mountify?tab=readme-ov-file#links"
+          body: "test kernel By rozalime12"
           files: "${{ env.WORKSPACE }}/${{ env.KERNEL_DEVICE }}-${{ steps.integrate-kernelsu-next.outputs.KERNELSU_NEXT_VERSION }}-${{ env.KERNEL_NAME }}-${{ env.builddate }}.zip"
           fail_on_unmatched_files: true
           preserve_order: true
