@@ -4,9 +4,9 @@
     "kernelSource": {
       "device": "begonia",
       "defconfig": "begonia_user_defconfig",
-      "name": "test-Non-Patches",
+      "name": "Test-Non-Patches",
       "repo": "https://github.com/xiaomi-mt6785-dev/android_kernel_xiaomi_mt6785",
-      "branch": "test"
+      "branch": "123"
     },
     "withRoot": "none",
     "withSUSFS": false,
@@ -52,9 +52,9 @@
     "kernelSource": {
       "device": "begonia",
       "defconfig": "begonia_user_defconfig",
-      "name": "test-KSU-Next-SUSFS",
+      "name": "Test-KSU-Next-SUSFS",
       "repo": "https://github.com/xiaomi-mt6785-dev/android_kernel_xiaomi_mt6785",
-      "branch": "test"
+      "branch": "123"
     },
     "withRoot": "ksun",
     "withSUSFS": true,
