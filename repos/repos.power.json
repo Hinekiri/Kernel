@@ -53,7 +53,7 @@
       "device": "begonia",
       "defconfig": "begonia_user_defconfig",
       "name": "Test-KSU-Next-SUSFS",
-      "repo": "https://github.com/Saikrishna1504/kernel_xiaomi_mt6785",
+      "repo": "https://github.com/xiaomi-begonia-dev/android_kernel_xiaomi_mt6785",
       "branch": "fifteen"
     },
     "withRoot": "ksun",
