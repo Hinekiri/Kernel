@@ -197,7 +197,7 @@ jobs:
           echo "ARCH=$ARCH" >> $GITHUB_OUTPUT
           echo "args=$args" >> $GITHUB_OUTPUT
 
-       - name: "💫 Patch kernel configuration"
+      - name: "💫 Patch kernel configuration"
          run: |
            sed -i 's/CONFIG_CC_STACKPROTECTOR_STRONG=y/# CONFIG_CC_STACKPROTECTOR_STRONG is not set/' arch/${ARCH}/configs/${DEFCONFIG_NAME}
 
