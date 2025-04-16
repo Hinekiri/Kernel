@@ -115,10 +115,6 @@ jobs:
 
           echo "🤔 Setup Anykernel3 => ($ANYKERNEL_REPO)"
 
-      - name: "💫 Patch kernel configuration"
-         run: |
-           sed -i 's/CONFIG_CC_STACKPROTECTOR_STRONG=y/# CONFIG_CC_STACKPROTECTOR_STRONG is not set/' arch/${ARCH}/configs/${DEFCONFIG_NAME}
-
       - name: "🌟 Clone kernel source => (${{ env.KERNEL_REPO }})"
         run: |
           git clone --recursive --depth=1 -j $(nproc) --branch $KERNEL_BRANCH $KERNEL_REPO $KERNEL_NAME
