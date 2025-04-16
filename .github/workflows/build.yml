@@ -88,6 +88,30 @@ jobs:
           sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 2 || true
           cd ..
 
+      - name: "⬆️ Install GCC 9 or higher"
+        run: |
+          sudo apt-get install -y gcc-9 g++-9
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
+
+      - name: "📦 Suppress tmpnam_r warning in Python build"
+        run: |
+          export CFLAGS="-Wno-deprecated-declarations"
+          wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+          tar -xvf Python-2.7.18.tgz
+          cd Python-2.7.18
+          ./configure
+          make -j$(nproc)
+          sudo make install
+          curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
+          sudo python2.7 get-pip.py
+          sudo update-alternatives --install /usr/bin/python python /usr/local/lib/python2.7 1
+          sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 2 || true
+          cd ..
+
+      - name: "🔧 Disable CONFIG_CC_STACKPROTECTOR_STRONG (if necessary)"
+        run: echo "CONFIG_CC_STACKPROTECTOR_STRONG=n" >> .config
+
       - name: "🚄 Create cache key from `repos`"
         if: ${{ env.ccache == 'true' }}
         id: ccache_key
