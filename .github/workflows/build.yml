@@ -106,29 +106,13 @@ jobs:
             ls -l  # List the files in the current directory to check for Makefile presence
           else
             echo "Error: Kernel source directory does not exist: $WORKSPACE/$KERNEL_NAME"
-            exit 1
+            git clone --recursive --depth=1 --branch $KERNEL_BRANCH $KERNEL_REPO $KERNEL_NAME  # Clone the kernel repo if it doesn't exist
+            cd $WORKSPACE/$KERNEL_NAME  # Retry cd after cloning
+            echo "Kernel repository cloned successfully."
           fi
 
           # Run make to build
           make -j$(nproc)  # Execute make in the kernel source directory
-
-      - name: "🚄 Create cache key from `repos`"
-        if: ${{ env.ccache == 'true' }}
-        id: ccache_key
-        run: |
-          ccache -o compression=false -o cache_dir=$HOME/.ccache
-          echo "CACHE_KEY=$(echo -n '${{ toJSON(matrix.repos) }}' | base64 -w 0 | cut -c -48)" >> $GITHUB_OUTPUT
-
-      - name: "🚅 Cache ccache files"
-        if: ${{ env.ccache == 'true' }}
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.ccache
-            ${{ env.OUT_DIR }}
-          key: ccache-${{ env.KERNEL_NAME }}-${{ steps.ccache_key.outputs.CACHE_KEY }}-${{ env.builddate }}
-          restore-keys: |
-            ccache-${{ env.KERNEL_NAME }}-${{ steps.ccache_key.outputs.CACHE_KEY }}-${{ env.builddate }}
 
       - name: "⏰ Setup Anykernel3"
         env:
@@ -137,14 +121,12 @@ jobs:
           ANYKERNEL_REPO=$(echo $params | jq -r ".repo")
           ANYKERNEL_BRANCH=$(echo $params | jq -r ".branch")
           git clone --recursive --depth=1 -j $(nproc) --branch $ANYKERNEL_BRANCH $ANYKERNEL_REPO AnyKernel3
-
           echo "🤔 Setup Anykernel3 => ($ANYKERNEL_REPO)"
 
       - name: "🌟 Clone kernel source => (${{ env.KERNEL_REPO }})"
         run: |
           git clone --recursive --depth=1 -j $(nproc) --branch $KERNEL_BRANCH $KERNEL_REPO $KERNEL_NAME
           echo -e "\n⚠️ Kernel is at commit: $(git -C $KERNEL_NAME rev-parse HEAD)\n"
-
           echo "🤔 Clone kernel source => ($KERNEL_REPO)"
 
       - name: "💫 Get toolchains"
@@ -153,10 +135,8 @@ jobs:
           echo "🤔 There is $toolchains_num defined toolchains."
           for ((i=0;i<toolchains_num;i++)); do
             toolchain_name=$(echo $toolchains | jq -r ".[$i].name")
-            # Github
             toolchain_repo=$(echo $toolchains | jq -r ".[$i].repo")
             toolchain_branch=$(echo $toolchains | jq -r ".[$i].branch")
-            # From archive
             toolchain_url=$(echo $toolchains | jq -r ".[$i].url")
 
             echo $toolchain_url
@@ -190,46 +170,6 @@ jobs:
               echo "$WORKSPACE/$toolchain_name/$bin_path" >> $GITHUB_PATH
             done
           done
-
-      - name: "😎 Set args"
-        id: generate-args
-        run: |
-          echo "🤔 PATH Variable: $PATH"
-
-          ARCH=$(echo $params | jq -r ".ARCH")
-          CC=$(echo $params | jq -r ".CC")
-
-          args="-j${{ env.THREAD }}"
-          if [ -n "${{ env.OUT_DIR }}" ]; then
-            mkdir -p ${{ env.OUT_DIR }} && args="$args O=${{ env.OUT_DIR }}"
-          fi
-          if [ -n "$ARCH" ]; then
-            args="$args ARCH=$ARCH"
-          fi
-          if [ -n "$CC" ]; then
-
-            if [[ "$CC" == *"/"* ]]; then
-              CC=${{ env.WORKSPACE }}/$CC
-            fi
-
-            if [ ${{ env.ccache }} = true ]; then
-              args="$args CC=\"ccache $CC\""
-            else
-              args="$args CC=$CC"
-            fi
-          fi
-          while read -r externalCommand; do
-            key=$(echo "$externalCommand" | cut -d= -f1)
-            value=$(echo "$externalCommand" | cut -d= -f2)
-            if [[ "$value" == *"/"* ]]; then
-              value="${{ env.WORKSPACE }}/$value"
-            fi
-            args="$args $key=$value"
-          done < <(jq -r '.externalCommand | to_entries[] | "\(.key)=\(.value)"' <<< "$params")
-
-          echo "🤔 $args"
-          echo "ARCH=$ARCH" >> $GITHUB_OUTPUT
-          echo "args=$args" >> $GITHUB_OUTPUT
 
       - name: "😋 Integrate KernelSU or KernelSU-Next"
         id: integrate-kernelsu-next
@@ -268,3 +208,29 @@ jobs:
           fi
 
           cat arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
+
+          SUSFS_BRANCH=next-4.14
+
+          git clone --recursive -j $(nproc) --branch $SUSFS_BRANCH https://github.com/cvnertnc/susfs4ksu-begonia SUSFS
+
+          SUSFS_REF=$(git -C SUSFS rev-parse --short HEAD)
+          echo -e "SUSFS_REF=$SUSFS_REF" >> $GITHUB_OUTPUT
+          echo -e "SUSFS_BRANCH=$SUSFS_BRANCH" >> $GITHUB_OUTPUT
+
+          if [[ "$withRoot" == "ksu" ]]; then
+            if [[ "$KNAME" == "power" ]]; then
+              patch -p1 < SUSFS/kernel_patches/kernels/power/0001-fs-implement-KSU.patch
+            elif [[ "$KNAME" == "nova" ]]; then
+              patch -p1 < SUSFS/kernel_patches/kernels/nova/0001-fs-implement-KSU.patch
+            else
+              patch -p1 < SUSFS/kernel_patches/0001-fs-implement-KSU.patch
+            fi
+          else
+            if [[ "$KNAME" == "power" ]]; then
+              patch -p1 < SUSFS/kernel_patches/kernels/power/0001-fs-implement-KSUN.patch
+            elif [[ "$KNAME" == "nova" ]]; then
+              patch -p1 < SUSFS/kernel_patches/kernels/nova/0001-fs-implement-KSUN.patch
+            else
+              patch -p1 < SUSFS/kernel_patches/0001-fs-implement-KSUN.patch
+            fi
+          fi
