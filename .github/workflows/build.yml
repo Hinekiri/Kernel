@@ -88,20 +88,6 @@ jobs:
           sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 2 || true
           cd ..
 
-       - name: "⬆️ Install and set GCC 9 as default"
-        run: |
-          sudo apt-get install -y gcc-9 g++-9
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
-          sudo update-alternatives --set gcc /usr/bin/gcc-9
-          sudo update-alternatives --set g++ /usr/bin/g++-9
-
-        - name: "Install Python 3"
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3 python3-pip
-          sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 1
-
       - name: "🚄 Create cache key from `repos`"
         if: ${{ env.ccache == 'true' }}
         id: ccache_key
