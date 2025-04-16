@@ -30,7 +30,6 @@ jobs:
           echo "repos<<EOF" >> $GITHUB_OUTPUT
           jq -s '[.[][]]' repos/repos*.json >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-
       - name: "⏰ Set builddate"
         id: generate-builddate
         run: echo "builddate=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
@@ -47,9 +46,11 @@ jobs:
     env:
       WORKSPACE: ${{ github.workspace }}
       builddate: "${{ needs.Set-repos.outputs.builddate }}"
+
       KNAME: ${{ matrix.repos.kernelName }}
       KERNEL_DEVICE: ${{ matrix.repos.kernelSource.device }}
       DEFCONFIG_NAME: ${{ matrix.repos.kernelSource.defconfig }}
+
       withRoot: ${{ matrix.repos.withRoot }}
       withSUSFS: ${{ matrix.repos.withSUSFS }}
       ccache: ${{ matrix.repos.ccache }}
@@ -86,7 +87,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 2 || true
           cd ..
 
-      - name: "⭐ Install Clang and LLVM"
+      - name: "⭐ Install Clang"
         run: |
           sudo apt-get install -y clang llvm
 
@@ -98,10 +99,17 @@ jobs:
           # Debug the toolchains variable and parse with jq
           REPO_URL=$(echo "$toolchains" | jq -r '.[0].repo')
           echo "Toolchain repository: $REPO_URL"
+    
+          # Ensure the kernel source directory exists before attempting to `cd` into it
+          if [ -d "$WORKSPACE/$KERNEL_NAME" ]; then
+            cd $WORKSPACE/$KERNEL_NAME  # Ensure you're in the correct directory
+            ls -l  # List the files in the current directory to check for Makefile presence
+          else
+            echo "Error: Kernel source directory does not exist: $WORKSPACE/$KERNEL_NAME"
+            exit 1
+          fi
 
           # Run make to build
-          cd $WORKSPACE/${KERNEL_NAME}  # Ensure you're in the correct directory
-          ls -l  # List the files in the current directory to check for Makefile presence
           make -j$(nproc)  # Execute make in the kernel source directory
 
       - name: "🚄 Create cache key from `repos`"
@@ -145,8 +153,10 @@ jobs:
           echo "🤔 There is $toolchains_num defined toolchains."
           for ((i=0;i<toolchains_num;i++)); do
             toolchain_name=$(echo $toolchains | jq -r ".[$i].name")
+            # Github
             toolchain_repo=$(echo $toolchains | jq -r ".[$i].repo")
             toolchain_branch=$(echo $toolchains | jq -r ".[$i].branch")
+            # From archive
             toolchain_url=$(echo $toolchains | jq -r ".[$i].url")
 
             echo $toolchain_url
@@ -180,6 +190,46 @@ jobs:
               echo "$WORKSPACE/$toolchain_name/$bin_path" >> $GITHUB_PATH
             done
           done
+
+      - name: "😎 Set args"
+        id: generate-args
+        run: |
+          echo "🤔 PATH Variable: $PATH"
+
+          ARCH=$(echo $params | jq -r ".ARCH")
+          CC=$(echo $params | jq -r ".CC")
+
+          args="-j${{ env.THREAD }}"
+          if [ -n "${{ env.OUT_DIR }}" ]; then
+            mkdir -p ${{ env.OUT_DIR }} && args="$args O=${{ env.OUT_DIR }}"
+          fi
+          if [ -n "$ARCH" ]; then
+            args="$args ARCH=$ARCH"
+          fi
+          if [ -n "$CC" ]; then
+
+            if [[ "$CC" == *"/"* ]]; then
+              CC=${{ env.WORKSPACE }}/$CC
+            fi
+
+            if [ ${{ env.ccache }} = true ]; then
+              args="$args CC=\"ccache $CC\""
+            else
+              args="$args CC=$CC"
+            fi
+          fi
+          while read -r externalCommand; do
+            key=$(echo "$externalCommand" | cut -d= -f1)
+            value=$(echo "$externalCommand" | cut -d= -f2)
+            if [[ "$value" == *"/"* ]]; then
+              value="${{ env.WORKSPACE }}/$value"
+            fi
+            args="$args $key=$value"
+          done < <(jq -r '.externalCommand | to_entries[] | "\(.key)=\(.value)"' <<< "$params")
+
+          echo "🤔 $args"
+          echo "ARCH=$ARCH" >> $GITHUB_OUTPUT
+          echo "args=$args" >> $GITHUB_OUTPUT
 
       - name: "😋 Integrate KernelSU or KernelSU-Next"
         id: integrate-kernelsu-next
@@ -218,53 +268,3 @@ jobs:
           fi
 
           cat arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-
-      - name: "🥷 Add SUSFS patches"
-        id: add-susfs-patches
-        working-directory: ${{ env.KERNEL_NAME }}
-        env:
-          arch: ${{ steps.generate-args.outputs.ARCH }}
-        if: ${{ (env.withRoot == 'ksu' || env.withRoot == 'ksun') && env.withSUSFS == 'true' }}
-        run: |
-          if [ -d "./SUSFS" ]; then
-            rm -rf "./SUSFS"
-          fi
-
-          SUSFS_BRANCH=next-4.14
-
-          git clone --recursive -j $(nproc) --branch $SUSFS_BRANCH https://github.com/cvnertnc/susfs4ksu-begonia SUSFS
-
-          SUSFS_REF=$(git -C SUSFS rev-parse --short HEAD)
-          echo -e "SUSFS_REF=$SUSFS_REF" >> $GITHUB_OUTPUT
-          echo -e "SUSFS_BRANCH=$SUSFS_BRANCH" >> $GITHUB_OUTPUT
-
-          cp -v SUSFS/kernel_patches/fs/* fs/
-          cp -v SUSFS/kernel_patches/include/linux/* include/linux/
-
-          if [[ "$withRoot" == "ksun" ]]; then
-              patch -d KernelSU -p1 < SUSFS/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch
-          else
-            rm -rf KernelSU
-            git clone --recursive -j $(nproc) --branch susfs-v1.5.5 https://github.com/rsuntk/KernelSU KernelSU
-          fi
-
-          if [[ "$KNAME" == "power" ]]; then
-            patch -p1 < SUSFS/kernel_patches/kernels/power/50_add_susfs_in_kernel-4.14.patch
-          elif [[ "$KNAME" == "nova" ]]; then
-            patch -p1 < SUSFS/kernel_patches/kernels/nova/50_add_susfs_in_kernel-4.14.patch
-          else
-            patch -p1 < SUSFS/kernel_patches/50_add_susfs_in_kernel-4.14.patch
-          fi
-
-          echo -e "#Susfs4ksu" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_SUS_PATH=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          echo -e "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
