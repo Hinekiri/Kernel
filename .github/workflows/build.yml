@@ -99,7 +99,9 @@ jobs:
           echo "Toolchain repository: $REPO_URL"
     
           # Run make to build
-          make -j$(nproc)
+          cd $WORKSPACE/${KERNEL_NAME}  # Ensure you're in the correct directory
+          ls -l  # List the files in the current directory to check for Makefile presence
+          make -j$(nproc)  # Execute make in the kernel source directory
 
       - name: "🚄 Create cache key from `repos`"
         if: ${{ env.ccache == 'true' }}
