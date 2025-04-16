@@ -111,7 +111,10 @@ jobs:
             echo "Kernel repository cloned successfully."
           fi
 
-          # Run make to build
+          # Run make defconfig to generate .config
+          make defconfig
+
+          # Now, run make to build the kernel
           make -j$(nproc)  # Execute make in the kernel source directory
 
       - name: "⏰ Setup Anykernel3"
@@ -170,67 +173,3 @@ jobs:
               echo "$WORKSPACE/$toolchain_name/$bin_path" >> $GITHUB_PATH
             done
           done
-
-      - name: "😋 Integrate KernelSU or KernelSU-Next"
-        id: integrate-kernelsu-next
-        working-directory: ${{ env.KERNEL_NAME }}
-        env:
-          arch: ${{ steps.generate-args.outputs.ARCH }}
-        if: ${{ env.withRoot == 'ksu' || env.withRoot == 'ksun' }}
-        run: |
-          if [ -d "./KernelSU" ]; then
-            rm -rf "./KernelSU"
-          fi
-          if [ -d "./drivers/kernelsu" ]; then
-            rm -rf "./drivers/kernelsu"
-          fi
-          if [ -d "./SUSFS" ]; then
-            rm -rf "./SUSFS"
-          fi
-
-          if [[ "$withRoot" == "ksu" ]]; then
-            curl -LSs "https://raw.githubusercontent.com/rsuntk/KernelSU/main/kernel/setup.sh" | bash -s main
-          else
-            curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
-            rm -rf KernelSU
-            git clone --recursive -j $(nproc) --branch next https://github.com/KernelSU-Next/KernelSU-Next KernelSU
-          fi
-
-          KERNELSU_NEXT_VERSION=$(git -C KernelSU describe --abbrev=0 --tags)
-
-          echo -e "\n💡 KernelSU Next version: $KERNELSU_NEXT_VERSION\n"
-
-          echo -e "KERNELSU_NEXT_VERSION=$KERNELSU_NEXT_VERSION" >> $GITHUB_OUTPUT
-
-          echo -e 'CONFIG_KSU=y' >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          if [[ "$withRoot" == "ksun" ]]; then
-            echo -e 'CONFIG_KSU_WITH_KPROBES=n' >> arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-          fi
-
-          cat arch/${{ env.arch }}/configs/${{ env.DEFCONFIG_NAME }}
-
-          SUSFS_BRANCH=next-4.14
-
-          git clone --recursive -j $(nproc) --branch $SUSFS_BRANCH https://github.com/cvnertnc/susfs4ksu-begonia SUSFS
-
-          SUSFS_REF=$(git -C SUSFS rev-parse --short HEAD)
-          echo -e "SUSFS_REF=$SUSFS_REF" >> $GITHUB_OUTPUT
-          echo -e "SUSFS_BRANCH=$SUSFS_BRANCH" >> $GITHUB_OUTPUT
-
-          if [[ "$withRoot" == "ksu" ]]; then
-            if [[ "$KNAME" == "power" ]]; then
-              patch -p1 < SUSFS/kernel_patches/kernels/power/0001-fs-implement-KSU.patch
-            elif [[ "$KNAME" == "nova" ]]; then
-              patch -p1 < SUSFS/kernel_patches/kernels/nova/0001-fs-implement-KSU.patch
-            else
-              patch -p1 < SUSFS/kernel_patches/0001-fs-implement-KSU.patch
-            fi
-          else
-            if [[ "$KNAME" == "power" ]]; then
-              patch -p1 < SUSFS/kernel_patches/kernels/power/0001-fs-implement-KSUN.patch
-            elif [[ "$KNAME" == "nova" ]]; then
-              patch -p1 < SUSFS/kernel_patches/kernels/nova/0001-fs-implement-KSUN.patch
-            else
-              patch -p1 < SUSFS/kernel_patches/0001-fs-implement-KSUN.patch
-            fi
-          fi
