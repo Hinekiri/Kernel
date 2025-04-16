@@ -4,15 +4,15 @@
     "kernelSource": {
       "device": "begonia",
       "defconfig": "begonia_user_defconfig",
-      "name": "Power-Non-Patches",
-      "repo": "https://github.com/Saikrishna1504/kernel_xiaomi_mt6785",
-      "branch": "vic"
+      "name": "Test-Non-Patches",
+      "repo": "https://github.com/xiaomi-begonia-dev/android_kernel_xiaomi_mt6785",
+      "branch": "fifteen"
     },
     "withRoot": "none",
     "withSUSFS": false,
     "toolchains": [
       {
-        "repo": "https://gitlab.com/PixelOS-Devices/playgroundtc",
+        "repo": "gitlab.com/Hinekiri/playgroundtc",
         "branch": "17",
         "name": "clang-playground",
         "binPath": ["./bin"]
@@ -52,15 +52,15 @@
     "kernelSource": {
       "device": "begonia",
       "defconfig": "begonia_user_defconfig",
-      "name": "Power-KSU-Next-SUSFS",
+      "name": "Test-KSU-Next-SUSFS",
       "repo": "https://github.com/Saikrishna1504/kernel_xiaomi_mt6785",
-      "branch": "vic"
+      "branch": "fifteen"
     },
     "withRoot": "ksun",
     "withSUSFS": true,
     "toolchains": [
       {
-        "repo": "https://gitlab.com/PixelOS-Devices/playgroundtc",
+        "repo": "gitlab.com/Hinekiri/playgroundtc",
         "branch": "17",
         "name": "clang-playground",
         "binPath": ["./bin"]
